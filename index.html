@@ -3,119 +3,98 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>LogicMem Pro - 忘却曲線暗記アプリ</title>
+    <title>LogicMem Pro v3</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        /* アニメーションと基本スタイル */
         .card-container { perspective: 1000px; }
-        .card-inner { 
-            position: relative; width: 100%; height: 100%; 
-            transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1); 
-            transform-style: preserve-3d; 
-        }
+        .card-inner { position: relative; width: 100%; height: 100%; transition: transform 0.4s; transform-style: preserve-3d; }
         .is-flipped { transform: rotateY(180deg); }
-        .card-face { 
-            position: absolute; width: 100%; height: 100%; 
-            backface-visibility: hidden; display: flex; 
-            align-items: center; justify-content: center; 
-            padding: 1.5rem; border-radius: 1rem; border: 2px solid #e2e8f0;
-            background: white; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
-        }
-        .card-back { transform: rotateY(180deg); background-color: #f8fafc; }
+        .card-face { position: absolute; width: 100%; height: 100%; backface-visibility: hidden; display: flex; align-items: center; justify-content: center; padding: 2rem; border-radius: 1.5rem; background: white; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); border: 1px solid #e2e8f0; }
+        .card-back { transform: rotateY(180deg); background-color: #f1f5f9; }
         .hidden-view { display: none !important; }
-        
-        /* スマホ向けタップハイライト除去 */
-        * { -webkit-tap-highlight-color: transparent; }
+        .modal-overlay { background: rgba(0,0,0,0.5); }
     </style>
     <link rel="icon" href="favicon.png">
-    <link rel="apple-touch-icon" href="favicon.png">
 </head>
-<body class="bg-gray-100 text-gray-900 font-sans h-screen flex flex-col">
+<body class="bg-gray-50 text-slate-800 font-sans h-screen flex flex-col">
 
-    <header class="bg-indigo-600 text-white p-4 shadow-lg flex-shrink-0">
+    <header class="bg-indigo-700 text-white p-4 shadow-md flex-shrink-0">
         <div class="max-w-2xl mx-auto flex justify-between items-center">
-            <h1 class="font-bold text-xl tracking-tight">LogicMem Pro</h1>
-            <nav class="flex gap-4">
-                <button onclick="showView('review')" class="hover:text-indigo-200">復習</button>
-                <button onclick="showView('manage')" class="hover:text-indigo-200">管理</button>
-                <button onclick="showView('settings')" class="hover:text-indigo-200">設定</button>
+            <h1 class="font-bold text-xl">LogicMem Pro</h1>
+            <nav class="flex gap-4 text-sm">
+                <button onclick="showView('review')" class="opacity-80 hover:opacity-100">復習</button>
+                <button onclick="showView('manage')" class="opacity-80 hover:opacity-100">カード管理</button>
             </nav>
         </div>
     </header>
 
-    <main class="flex-grow overflow-y-auto p-4">
-        <div class="max-w-2xl mx-auto h-full">
+    <main class="flex-grow overflow-hidden relative">
+        <div class="max-w-2xl mx-auto h-full p-4 overflow-y-auto">
             
             <div id="view-review" class="view-content h-full flex flex-col">
-                <div class="mb-4 flex justify-between items-center bg-white p-3 rounded-lg shadow-sm">
-                    <span class="text-sm font-medium text-gray-500">本日の残り: <span id="due-count" class="text-indigo-600 font-bold">0</span> 枚</span>
-                    <span id="progress-text" class="text-xs text-gray-400"></span>
-                </div>
-
-                <div id="study-area" class="hidden-view flex-grow flex flex-col">
-                    <div class="card-container flex-grow min-h-[300px] mb-6">
+                <div id="study-area" class="hidden-view flex flex-col h-full">
+                    <div class="flex justify-between mb-4">
+                        <span class="text-xs font-bold text-indigo-600 bg-indigo-50 px-3 py-1 rounded-full">残り: <span id="due-count">0</span> 枚</span>
+                    </div>
+                    <div class="card-container flex-grow min-h-[350px] mb-8">
                         <div id="flashcard" class="card-inner cursor-pointer" onclick="toggleFlip()">
-                            <div class="card-face">
-                                <p id="card-q" class="text-xl md:text-2xl font-semibold text-center whitespace-pre-wrap"></p>
-                            </div>
-                            <div class="card-face card-back">
-                                <p id="card-a" class="text-lg md:text-xl text-center whitespace-pre-wrap"></p>
-                            </div>
+                            <div class="card-face text-2xl font-bold text-center whitespace-pre-wrap" id="card-q"></div>
+                            <div class="card-face card-back text-xl text-center whitespace-pre-wrap" id="card-a"></div>
                         </div>
                     </div>
-
-                    <div id="action-buttons" class="hidden-view grid grid-cols-3 gap-3 mb-4">
-                        <button onclick="processReview(1)" class="bg-red-500 text-white py-4 rounded-xl font-bold shadow-md active:scale-95 transition">忘れた</button>
-                        <button onclick="processReview(3)" class="bg-amber-500 text-white py-4 rounded-xl font-bold shadow-md active:scale-95 transition">迷った</button>
-                        <button onclick="processReview(5)" class="bg-emerald-500 text-white py-4 rounded-xl font-bold shadow-md active:scale-95 transition">簡単</button>
+                    <div id="action-buttons" class="hidden-view grid grid-cols-3 gap-4 mb-4">
+                        <button onclick="processReview(1)" class="bg-red-500 text-white py-4 rounded-2xl font-bold shadow-lg active:scale-95">忘れた</button>
+                        <button onclick="processReview(3)" class="bg-amber-500 text-white py-4 rounded-2xl font-bold shadow-lg active:scale-95">迷った</button>
+                        <button onclick="processReview(5)" class="bg-emerald-500 text-white py-4 rounded-2xl font-bold shadow-lg active:scale-95">簡単</button>
                     </div>
-                    <p class="text-center text-gray-400 text-xs mb-2">カードをタップして解答を表示 (PC: Space/Enter)</p>
                 </div>
-
-                <div id="empty-msg" class="text-center py-20 bg-white rounded-2xl shadow-sm border-2 border-dashed border-gray-300">
-                    <p class="text-gray-500 mb-4">現在、復習すべきカードはありません。</p>
-                    <button onclick="showView('manage')" class="text-indigo-600 font-bold underline">新しいカードを追加する</button>
+                <div id="empty-msg" class="text-center py-20 bg-white rounded-3xl shadow-inner border-2 border-dashed">
+                    <p class="text-gray-400">今日の復習はすべて完了です！</p>
                 </div>
             </div>
 
-            <div id="view-manage" class="view-content hidden-view space-y-6">
-                <section class="bg-white p-6 rounded-xl shadow-sm border">
-                    <h2 class="font-bold text-lg mb-4">新規追加</h2>
-                    <div class="space-y-3">
-                        <input id="new-q" type="text" placeholder="問題（表面）" class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none">
-                        <textarea id="new-a" placeholder="解答（裏面）" class="w-full p-3 border rounded-lg h-24 focus:ring-2 focus:ring-indigo-500 outline-none"></textarea>
-                        <button onclick="saveCard()" class="w-full bg-indigo-600 text-white py-3 rounded-lg font-bold hover:bg-indigo-700 transition">保存する</button>
-                    </div>
-                </section>
-
-                <section>
-                    <h2 class="font-bold text-lg mb-4">登録済みカード (<span id="total-count">0</span>)</h2>
-                    <div id="card-list" class="space-y-2"></div>
-                </section>
+            <div id="view-manage" class="view-content hidden-view space-y-4 pb-20">
+                <button onclick="openEditModal()" class="w-full bg-indigo-600 text-white py-3 rounded-xl font-bold shadow-md">+ 新規カード作成</button>
+                <div class="flex justify-between items-center pt-4 border-b pb-2">
+                    <h2 class="font-bold text-gray-500 text-sm tracking-widest uppercase">登録済みカード一覧</h2>
+                    <span id="total-count" class="text-xs bg-gray-200 px-2 py-1 rounded">0</span>
+                </div>
+                <div id="card-list" class="space-y-3"></div>
             </div>
-
-            <div id="view-settings" class="view-content hidden-view space-y-6">
-                <section class="bg-white p-6 rounded-xl shadow-sm border">
-                    <h2 class="font-bold text-lg mb-4">データ管理</h2>
-                    <p class="text-sm text-gray-500 mb-4">別のブラウザや端末にデータを移す際にお使いください。</p>
-                    <div class="flex gap-2">
-                        <button onclick="exportData()" class="flex-1 border border-indigo-600 text-indigo-600 py-2 rounded-lg font-bold">エクスポート</button>
-                        <button onclick="document.getElementById('import-file').click()" class="flex-1 bg-gray-100 py-2 rounded-lg font-bold">インポート</button>
-                        <input type="file" id="import-file" class="hidden" onchange="importData(event)">
-                    </div>
-                </section>
-            </div>
-
         </div>
     </main>
 
+    <div id="edit-modal" class="hidden-view fixed inset-0 modal-overlay flex items-center justify-center p-4 z-50">
+        <div class="bg-white w-full max-w-md rounded-2xl p-6 shadow-2xl">
+            <h3 id="modal-title" class="text-lg font-bold mb-4">カードの編集</h3>
+            <input type="hidden" id="edit-id">
+            <div class="space-y-4">
+                <div>
+                    <label class="text-xs text-gray-400 font-bold">問題</label>
+                    <textarea id="edit-q" class="w-full border p-3 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none h-24"></textarea>
+                </div>
+                <div>
+                    <label class="text-xs text-gray-400 font-bold">解答</label>
+                    <textarea id="edit-a" class="w-full border p-3 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none h-24"></textarea>
+                </div>
+                <div class="flex gap-2 pt-2">
+                    <button onclick="closeEditModal()" class="flex-1 bg-gray-100 py-3 rounded-xl font-bold">キャンセル</button>
+                    <button onclick="commitSave()" class="flex-1 bg-indigo-600 text-white py-3 rounded-xl font-bold">保存</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script>
-        // --- 状態管理 ---
-        let cards = JSON.parse(localStorage.getItem('logicmem_v2_cards') || '[]');
+        let cards = JSON.parse(localStorage.getItem('logicmem_v3_cards') || '[]');
         let currentQueue = [];
         let currentCard = null;
 
-        // --- ビュー制御 ---
+        function saveToStorage() {
+            localStorage.setItem('logicmem_v3_cards', JSON.stringify(cards));
+            // 【ここに同期処理を追加可能】
+        }
+
         function showView(viewId) {
             document.querySelectorAll('.view-content').forEach(v => v.classList.add('hidden-view'));
             document.getElementById(`view-${viewId}`).classList.remove('hidden-view');
@@ -123,20 +102,11 @@
             if (viewId === 'manage') renderCardList();
         }
 
-        // --- データ保存 ---
-        function saveToStorage() {
-            localStorage.setItem('logicmem_v2_cards', JSON.stringify(cards));
-        }
-
-        // --- 復習ロジック (SM-2 Algorithm) ---
+        // --- 復習ロジック (SM-2) ---
         function initReview() {
             const now = new Date();
-            // 学習期限が来ているカードを抽出
-            currentQueue = cards.filter(c => new Date(c.nextReview) <= now);
-            // 学習順序をランダムにシャッフル
-            currentQueue.sort(() => Math.random() - 0.5);
-            
-            updateProgress();
+            currentQueue = cards.filter(c => new Date(c.nextReview) <= now).sort(() => Math.random() - 0.5);
+            document.getElementById('due-count').innerText = currentQueue.length;
             if (currentQueue.length > 0) {
                 document.getElementById('study-area').classList.remove('hidden-view');
                 document.getElementById('empty-msg').classList.add('hidden-view');
@@ -148,10 +118,7 @@
         }
 
         function showNextCard() {
-            if (currentQueue.length === 0) {
-                initReview();
-                return;
-            }
+            if (currentQueue.length === 0) return initReview();
             currentCard = currentQueue[0];
             document.getElementById('card-q').innerText = currentCard.q;
             document.getElementById('card-a').innerText = currentCard.a;
@@ -160,157 +127,106 @@
         }
 
         function toggleFlip() {
-            const card = document.getElementById('flashcard');
-            card.classList.toggle('is-flipped');
-            if (card.classList.contains('is-flipped')) {
-                document.getElementById('action-buttons').classList.remove('hidden-view');
-            }
+            document.getElementById('flashcard').classList.toggle('is-flipped');
+            document.getElementById('action-buttons').classList.remove('hidden-view');
         }
 
         function processReview(quality) {
             let { interval, repetition, ef } = currentCard;
-
-            // SM-2 アルゴリズムの核心
             if (quality >= 3) {
                 if (repetition === 0) interval = 1;
                 else if (repetition === 1) interval = 6;
                 else interval = Math.round(interval * ef);
                 repetition++;
             } else {
-                repetition = 0;
-                interval = 1; // 忘れた場合は翌日再挑戦
+                repetition = 0; interval = 1;
             }
-
-            // EF (Ease Factor) の更新
-            ef = ef + (0.1 - (5 - quality) * (0.08 + (5 - quality) * 0.02));
-            if (ef < 1.3) ef = 1.3;
-
+            ef = Math.max(1.3, ef + (0.1 - (5 - quality) * (0.08 + (5 - quality) * 0.02)));
             const nextDate = new Date();
-            nextDate.setHours(0, 0, 0, 0); // 日付単位で管理
+            nextDate.setHours(0,0,0,0);
             nextDate.setDate(nextDate.getDate() + interval);
 
-            // マスターデータの更新
-            const index = cards.findIndex(c => c.id === currentCard.id);
-            cards[index] = { 
-                ...currentCard, 
-                interval, repetition, ef, 
-                nextReview: nextDate.toISOString() 
-            };
-            
+            const idx = cards.findIndex(c => c.id === currentCard.id);
+            cards[idx] = { ...currentCard, interval, repetition, ef, nextReview: nextDate.toISOString() };
             saveToStorage();
             currentQueue.shift();
-            updateProgress();
+            document.getElementById('due-count').innerText = currentQueue.length;
             showNextCard();
         }
 
-        function updateProgress() {
-            document.getElementById('due-count').innerText = currentQueue.length;
-            document.getElementById('total-count').innerText = cards.length;
-        }
-
-        // --- 管理機能 ---
-        function saveCard() {
-            const q = document.getElementById('new-q').value.trim();
-            const a = document.getElementById('new-a').value.trim();
-            if (!q || !a) return alert("問題と解答を入力してください");
-
-            const newCard = {
-                id: Date.now(),
-                q, a,
-                interval: 0,
-                repetition: 0,
-                ef: 2.5,
-                nextReview: new Date().toISOString()
-            };
-
-            cards.push(newCard);
-            saveToStorage();
-            document.getElementById('new-q').value = '';
-            document.getElementById('new-a').value = '';
-            renderCardList();
-            alert("追加しました");
-        }
-
-        function deleteCard(id) {
-            if (confirm("このカードを削除しますか？")) {
-                cards = cards.filter(c => c.id !== id);
-                saveToStorage();
-                renderCardList();
-                updateProgress();
-            }
-        }
-
+        // --- 管理・編集ロジック ---
         function renderCardList() {
             const list = document.getElementById('card-list');
             list.innerHTML = '';
+            document.getElementById('total-count').innerText = cards.length;
             cards.slice().reverse().forEach(c => {
-                const div = document.createElement('div');
-                div.className = "bg-white p-3 rounded shadow-sm flex justify-between items-center text-sm border";
-                div.innerHTML = `
-                    <div class="truncate mr-2">
-                        <span class="font-bold">Q:</span> ${c.q}
+                const item = document.createElement('div');
+                item.className = "bg-white p-4 rounded-xl shadow-sm border flex justify-between items-center";
+                item.innerHTML = `
+                    <div class="flex-grow truncate pr-4">
+                        <div class="text-xs text-indigo-500 font-bold mb-1">Q. ${c.q.substring(0, 10)}...</div>
+                        <div class="text-sm text-gray-600 truncate">${c.a.substring(0, 20)}...</div>
                     </div>
-                    <button onclick="deleteCard(${c.id})" class="text-red-500 font-bold px-2">削除</button>
+                    <div class="flex gap-2">
+                        <button onclick="openEditModal(${c.id})" class="text-indigo-600 font-bold text-sm bg-indigo-50 px-3 py-1 rounded-lg">編集</button>
+                        <button onclick="deleteCard(${c.id})" class="text-red-500 font-bold text-sm bg-red-50 px-3 py-1 rounded-lg">削除</button>
+                    </div>
                 `;
-                list.appendChild(div);
+                list.appendChild(item);
             });
-            updateProgress();
         }
 
-        // --- エクスポート/インポート ---
-        function exportData() {
-            const dataStr = JSON.stringify(cards);
-            const blob = new Blob([dataStr], {type: "application/json"});
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `logicmem_backup_${new Date().toISOString().slice(0,10)}.json`;
-            a.click();
-        }
-
-        function importData(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                try {
-                    const imported = JSON.parse(e.target.result);
-                    if (Array.isArray(imported)) {
-                        if (confirm(`${imported.length}件のデータを読み込みますか？現在のデータは上書きされます。`)) {
-                            cards = imported;
-                            saveToStorage();
-                            location.reload();
-                        }
-                    }
-                } catch (err) { alert("無効なファイル形式です"); }
-            };
-            reader.readAsText(file);
-        }
-
-        // --- キーボードサポート (PC用) ---
-        window.addEventListener('keydown', (e) => {
-            const isReviewView = !document.getElementById('view-review').classList.contains('hidden-view');
-            if (!isReviewView) return;
-
-            if (e.code === 'Space' || e.code === 'Enter') {
-                const isFlipped = document.getElementById('flashcard').classList.contains('is-flipped');
-                if (!isFlipped) {
-                    toggleFlip();
-                    e.preventDefault();
-                }
+        function openEditModal(id = null) {
+            const modal = document.getElementById('edit-modal');
+            const title = document.getElementById('modal-title');
+            if (id) {
+                const card = cards.find(c => c.id === id);
+                document.getElementById('edit-id').value = id;
+                document.getElementById('edit-q').value = card.q;
+                document.getElementById('edit-a').value = card.a;
+                title.innerText = "カードの編集";
+            } else {
+                document.getElementById('edit-id').value = '';
+                document.getElementById('edit-q').value = '';
+                document.getElementById('edit-a').value = '';
+                title.innerText = "新規カード作成";
             }
-            if (document.getElementById('flashcard').classList.contains('is-flipped')) {
-                if (e.key === '1') processReview(1);
-                if (e.key === '2') processReview(3);
-                if (e.key === '3') processReview(5);
-            }
-        });
+            modal.classList.remove('hidden-view');
+        }
 
-        // 初期化
+        function closeEditModal() {
+            document.getElementById('edit-modal').classList.add('hidden-view');
+        }
+
+        function commitSave() {
+            const id = document.getElementById('edit-id').value;
+            const q = document.getElementById('edit-q').value.trim();
+            const a = document.getElementById('edit-a').value.trim();
+            if (!q || !a) return alert("入力してください");
+
+            if (id) {
+                const idx = cards.findIndex(c => c.id == id);
+                cards[idx].q = q;
+                cards[idx].a = a;
+            } else {
+                cards.push({ id: Date.now(), q, a, interval: 0, repetition: 0, ef: 2.5, nextReview: new Date().toISOString() });
+            }
+            saveToStorage();
+            closeEditModal();
+            renderCardList();
+        }
+
+        function deleteCard(id) {
+            if (confirm("本当に削除しますか？")) {
+                cards = cards.filter(c => c.id !== id);
+                saveToStorage();
+                renderCardList();
+            }
+        }
+
         initReview();
     </script>
 </body>
-
 </html>
 
 
